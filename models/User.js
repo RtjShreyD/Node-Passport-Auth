@@ -16,6 +16,14 @@ const UserSchema = new mongoose.Schema({
     date: {
         type: Date,
         default: Date.now
+    },
+    verified: {
+        type: Boolean,
+        default: false
+    },
+    temp: {
+        type: String,
+        default: "" 
     }
 });
 

@@ -1,5 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
+const passport = require('passport');
+
+//User model
+const User = require('../models/User');
 
 //Login Page
 router.get('/login', (req, res) => {
@@ -40,9 +45,59 @@ router.post('/register', (req, res) => {
     }
 
     else {
-        res.send('pass');
+        // Validation passed
+        User.findOne({ email: email })
+            .then(user => {
+                if(user) {
+                    errors.push({ msg: 'Email already exists' });
+                    //User exists
+                    res.render('register', {
+                        errors,
+                        name,
+                        email,
+                        password,
+                        password2
+                    });
+                }
+                else {
+                    // create new user
+                    const newUser = new User({
+                        name,
+                        email,
+                        password
+                    });
+                   
+                    // Hash Password
+                    bcrypt.genSalt(10, (err, salt) => {
+                        bcrypt.hash(newUser.password, salt, (err, hash) =>{ 
+                            if(err) throw err;
+                            // Set password to hasg
+                            newUser.password = hash
+
+                            //Save the user
+                            newUser.save()
+                                .then(user => {
+                                    req.flash('success_msg', 'You are now registered and can log in');
+                                    res.redirect('/users/login');
+                                })
+                                .catch(err => console.log(err));
+                        });
+                    });
+
+
+                }
+            });
     }
 
+});
+
+// Login handler
+router.post('/login', (req, res, next) => {
+    passport.authenticate('local', {
+        successRedirect : '/dashboard',
+        failureRedirect : '/users/login',
+        failureFlash : true
+    })(req, res, next);
 });
 
 module.exports = router;

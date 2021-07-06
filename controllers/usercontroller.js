@@ -125,6 +125,89 @@ const createPerson = (req, res) => {
 
 };
 
+const verifyPerson = (req, res) => {
+    console.log(req.body);
+    const { email, otp } = req.body;
+
+    let errors = [];    
+
+    if (!email || !otp) {
+        errors.push({ msg: 'Please enter all fields' });
+    }
+
+    if(errors.length > 0) {
+        res.render('verify', {
+            errors,
+            email,
+            otp
+        });
+    }
+
+    else {
+        User.findOne({ email : email })
+            .then(user => {
+                
+                if(!user) {
+                    errors.push({ msg: 'Email does not exist, please register.' });
+                    res.render('verify', {
+                        errors,
+                        email,
+                        otp
+                    });
+                }
+
+                if(user.verified) {
+                    errors.push({ msg: 'Already verified user.' });
+                    res.render('verify', {
+                        errors,
+                        email,
+                        otp
+                    });
+                }
+
+                else {
+                    console.log(otp);
+
+                    bcrypt.compare(req.body.otp, user.temp)
+                        .then((result) => {
+                            console.log(result);
+
+                            if(result){
+                                console.log("OTP verified");
+                                user.temp = "";
+                                user.verified = true;
+
+                                try {
+                                    user.save()
+                                        .then(user => {
+                                            console.log("OTP verified");
+                                            req.flash('Successfully verified User');
+                                            res.redirect("/users/login");
+
+                                        })
+
+                                }
+                                catch(error) {
+                                    console.log(error);
+                                }
+                            }
+
+                            else {
+                                console.log("Please enter correct OTP");
+                                errors.push({ msg: "Please enter correct OTP" });
+                                res.render('verify', {
+                                    errors,
+                                    email,
+                                    otp
+                                });
+                            }
+                        })
+                }
+            })
+            .catch(err => {console.log(err);})
+    }
+};
+
 const loginPerson = (req, res, next) => {
     console.log(req.body);
     passport.authenticate('local', {
@@ -140,4 +223,4 @@ const logoutPerson = (req, res) => {
     res.redirect('/users/login');
 };
 
-module.exports = { createPerson, loginPerson, logoutPerson };
+module.exports = { createPerson, loginPerson, logoutPerson, verifyPerson };

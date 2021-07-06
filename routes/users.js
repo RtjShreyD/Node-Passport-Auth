@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { createPerson, loginPerson, logoutPerson } = require('../controllers/usercontroller')
+const { createPerson, loginPerson, logoutPerson, verifyPerson } = require('../controllers/usercontroller')
 
 
 //User model
@@ -21,6 +21,9 @@ router.get('/register', (req, res) => {
 router.get('/verifyotp', (req, res) => {
     res.render('verify');
 })
+
+//Verify Email handler
+router.post('/verifyotp', verifyPerson);
 
 router.post('/register', createPerson);
 

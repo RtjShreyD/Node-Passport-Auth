@@ -17,6 +17,10 @@ router.get('/register', (req, res) => {
     res.render('register');
 })
 
+// Verify Email Page
+router.get('/verifyotp', (req, res) => {
+    res.render('verify');
+})
 
 router.post('/register', createPerson);
 

@@ -1,16 +1,16 @@
 const User = require("../models/User");
-// const nodemailer = require("nodemailer");
-// const utility = require("./utility");
+const nodemailer = require("nodemailer");
+const utility = require("./utility");
 const bcrypt = require('bcryptjs');
 const passport = require('passport');
 
-// var mail = nodemailer.createTransport({
-//     service: 'gmail',
-//     auth: {
-//         user: 'shreyanshece1041@gmail.com',
-//         pass: 'lwlymzpjnxfnflul'
-//     }
-// });
+var mail = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'shreyanshece1041@gmail.com',
+        pass: 'lwlymzpjnxfnflul'
+    }
+});
 
 
 const createPerson = (req, res) => {
@@ -55,27 +55,64 @@ const createPerson = (req, res) => {
                         password2
                     });
                 }
-                else {
+                else 
+                {
+                    let temp = ""
+                    // generateOTP
+                    let otpStr = utility.generateOTP().toString();
+                    console.log(otpStr);
+                    
+                    //hash the OTP
+                    bcrypt.genSalt(10, (err, salt) => {
+                        bcrypt.hash(otpStr, salt, (err, otphash) => {
+                            if(err) throw err;
+                            temp = otphash;
+                            console.log("OTP hashed saving to temp");
+                            console.log(temp);
+                        })
+                    });
+
                     // create new user
+                    console.log("hashed otp goint inside User obj", temp);
                     const newUser = new User({
                         name,
                         email,
-                        password
+                        password,
+                        temp
                     });
                    
                     // Hash Password
                     bcrypt.genSalt(10, (err, salt) => {
+                        console.log("Temp value in hash password before saving user", temp)
                         bcrypt.hash(newUser.password, salt, (err, hash) =>{ 
                             if(err) throw err;
                             // Set password to hasg
-                            newUser.password = hash
+                            newUser.password = hash;
+                            newUser.temp = temp;
 
                             //Save the user
                             newUser.save()
                                 .then(user => {
-                                    req.flash('success_msg', 'You are now registered and can log in');
-                                    res.redirect('/users/login');
-                                    // res.status(201).json({Message: "Registerd !! verify email"}) //for api let try and see
+                                    console.log("Temp value currently at saving", newUser.temp)
+                                    req.flash('success_msg', 'You are now registered and need to verify email to login.');
+                                    var mailOptions = {
+                                        from: 'shreyanshece1041@gmail.com',
+                                        to: newUser.email,
+                                        subject: 'OTP for verification',
+                                        text: otpStr
+                                    };
+                            
+                                    console.log(mailOptions);
+                                      
+                                    mail.sendMail(mailOptions, function(error, info){
+                                        if (error) {
+                                          console.log(error);
+                                        } else {
+                                          console.log('Email sent: ' + info.response);
+                                        }
+                                    });
+                                    
+                                    res.redirect('/users/verifyotp');
                                 })
                                 .catch(err => console.log(err));
                         });
